@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Probability 3D Learning: White & Red Edition Battle</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            font-family: 'Sarabun', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333; margin: 0; padding: 20px; line-height: 1.6;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), 
+                              url('image_0b3720.png');
+            background-size: cover; background-position: center; background-attachment: fixed;
+        }
+        .container {
+            max-width: 980px; margin: 0 auto; background: rgba(255, 255, 255, 0.95);
+            padding: 30px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); position: relative;
+        }
+        .lang-switch { position: absolute; top: 20px; right: 20px; }
+        .lang-btn {
+            background-color: #ecf0f1; border: 2px solid #bdc3c7; padding: 5px 15px;
+            cursor: pointer; border-radius: 20px; font-weight: bold; color: #2c3e50; transition: all 0.3s;
+        }
+        .lang-btn.active { background-color: #34495e; color: white; border-color: #2c3e50; }
+        h1, h2, h3 { color: #2c3e50; }
+        h1 { text-align: center; margin-top: 10px; }
+        .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 20px; }
+        
+        .multiplayer-setup {
+            background: #f1f2f6; border: 2px solid #ced6e0; padding: 15px;
+            border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;
+        }
+        .current-turn-banner {
+            background: linear-gradient(135deg, #2c3e50, #1e272e);
+            color: #f1c40f; text-align: center; padding: 12px; border-radius: 8px;
+            font-size: 1.3em; font-weight: bold; margin-bottom: 20px; border: 2px solid #f1c40f;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .scoreboard-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;
+        }
+        .player-card {
+            background: #fff; border: 2px solid #e0e0e0; border-radius: 8px; padding: 12px; text-align: center;
+            transition: all 0.3s; position: relative;
+        }
+        .player-card.active-turn {
+            border-color: #2ecc71; box-shadow: 0 0 12px rgba(46, 204, 113, 0.5); transform: scale(1.03); background: #f0fff4;
+        }
+        .player-card.leader::after {
+            content: '👑 Leader'; position: absolute; top: -12px; right: 10px;
+            background: #f1c40f; color: #2c3e50; font-size: 0.75em; font-weight: bold; padding: 2px 8px; border-radius: 10px;
+        }
+
+        .prediction-box {
+            background: #ffeaa7; border: 2px dashed #fdcb6e; padding: 15px;
+            border-radius: 8px; margin-bottom: 20px; text-align: center;
+        }
+        .prediction-select {
+            padding: 8px 15px; font-size: 16px; border-radius: 5px; font-weight: bold; margin-left: 10px;
+        }
+
+        .theory-box, .conclusion-box { background: #eef7fa; border-left: 5px solid #3498db; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; }
+        .formula { font-size: 1.2em; font-weight: bold; text-align: center; background: #fff; padding: 10px; border-radius: 8px; color: #2980b9; margin: 10px 0; border: 1px dashed #3498db; }
+        
+        .definition-list { margin-top: 15px; padding-left: 20px; }
+        .definition-list li { margin-bottom: 8px; }
+
+        .controls { background: #fdfefe; border: 1px solid #d5dbdb; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .control-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        select, input[type="range"], input[type="text"] { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #bdc3c7; font-family: inherit; box-sizing: border-box; }
+        .value-display { font-weight: bold; color: #e74c3c; }
+
+        .mode-toggle { display: flex; gap: 10px; margin-bottom: 15px; background: #eaeded; padding: 5px; border-radius: 8px; }
+        .mode-btn { flex: 1; padding: 10px; border: none; background: transparent; font-weight: bold; cursor: pointer; border-radius: 6px; color: #7f8c8d; transition: all 0.3s; }
+        .mode-btn.active { background: #3498db; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        #canvas3d-container {
+            width: 100%; height: 350px; 
+            background-image: url('S__5398534.jpg');
+            background-size: cover; background-position: center;
+            border-radius: 12px; margin-bottom: 20px; overflow: hidden; position: relative; border: 3px solid #34495e;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+        }
+        .action-btns { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 10; }
+        .btn-action { background: #e74c3c; color: white; border: none; padding: 12px 28px; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.4); transition: transform 0.1s, background 0.3s; }
+        .btn-action:hover { background: #c0392b; }
+        .btn-action:disabled { background: #95a5a6; cursor: not-allowed; }
+        .btn-reset { background: #e67e22; }
+        .btn-reset:hover { background: #d35400; }
+
+        .sample-space-box { background: #f9ebea; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-family: monospace; font-size: 1.1em; color: #c0392b; }
+        .chart-container { position: relative; height: 350px; width: 100%; margin-bottom: 20px; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .btn-export { background: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.3s; }
+        .btn-export:hover { background: #2ecc71; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: #fff; }
+        th, td { border: 1px solid #bdc3c7; padding: 10px; text-align: center; }
+        th { background: #34495e; color: white; }
+        tr:nth-child(even) { background: #f2f6f8; }
+
+        .quiz-section { background: #fff9e6; padding: 20px; border-radius: 8px; border-left: 5px solid #f1c40f; margin-bottom: 20px; }
+        .question-card { background: white; border: 1px solid #f1c40f; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .options-group { margin: 10px 0; display: flex; flex-direction: column; gap: 8px; }
+        .option-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fdfefe; border: 1px solid #bdc3c7; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        .option-item:hover { background: #ebf5fb; }
+        .option-item input { margin: 0; cursor: pointer; }
+        .feedback { display: none; margin-top: 10px; padding: 10px; border-radius: 6px; font-weight: bold; }
+        .feedback.correct { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .feedback.incorrect { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .score-board { background: #2c3e50; color: white; padding: 15px; border-radius: 8px; text-align: center; font-size: 1.2em; font-weight: bold; margin-bottom: 15px; display: none; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; margin-right: 10px; }
+        .badge-easy { background-color: #2ecc71; }
+        .badge-medium { background-color: #f39c12; }
+        .badge-hard { background-color: #e67e22; }
+        .badge-expert { background-color: #e74c3c; }
+
+        .btn-submit-quiz { background: #f1c40f; color: #2c3e50; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-submit-quiz:hover { background: #f39c12; color: white; }
+
+        .add-quiz-section { background: #f4f6f7; padding: 20px; border-radius: 8px; border: 1px solid #bdc3c7; margin-bottom: 20px; }
+        .btn-add { background-color: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; }
+        .btn-add:hover { background-color: #2ecc71; }
+        .btn-reset-questions { background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; float: right; }
+
+        .summary-box { background: #eaf2f8; border-left: 5px solid #2980b9; padding: 20px; border-radius: 8px; }
+        .summary-box h2 { margin-top: 0; color: #2c3e50; }
+        .summary-list { margin: 0; padding-left: 20px; }
+        .summary-list li { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="lang-switch">
+        <button id="btnTH" class="lang-btn active" onclick="setLanguage('th')">TH</button>
+        <button id="btnEN" class="lang-btn" onclick="setLanguage('en')">EN</button>
+    </div>
+
+    <h1 id="mainTitle">🎲 Probability 3D White & Red Edition (2-4 คน)</h1>
+    <p id="mainSubtitle" class="subtitle">เรียนรู้ความน่าจะเป็นผ่านการทอยลูกเต๋าสีขาวจุดสีแดงคลาสสิก</p>
+
+    <div class="multiplayer-setup">
+        <label style="font-weight:bold; font-size:1.1em;" id="lblPlayerCount">👥 จำนวนผู้เล่นทั้งหมด:</label>
+        <select id="playerCountSelect" style="width:160px; font-weight:bold; padding:6px;" onchange="initMultiplayer()">
+            <option value="2" id="optP2">2 คน (Player 1 vs 2)</option>
+            <option value="3" id="optP3">3 คน (Player 1 vs 2 vs 3)</option>
+            <option value="4" id="optP4" selected>4 คน (Player 1 vs 2 vs 3 vs 4)</option>
+        </select>
+    </div>
+
+    <div class="current-turn-banner" id="turnBanner">
+        <span id="lblActiveTurnPrefix">👉 ตอนนี้เป็นตาของ:</span> <span id="activePlayerName" style="color:#2ecc71;">Player 1</span>
+    </div>
+
+    <div class="scoreboard-grid" id="scoreboardGrid"></div>
+
+    <div class="prediction-box">
+        <label style="display:inline; font-size:1.1em; color:#d35400;" id="lblPredictTitle">🎯 **คาดเดาผลลัพธ์ในตานี้:** เลือกทายผลก่อนกดทอย (+100 คะแนนเมื่อทายถูก!)</label>
+        <select id="predictSelect" class="prediction-select"></select>
+    </div>
+
+    <div class="theory-box">
+        <h2 id="theoryTitle" style="margin-top:0;">ทฤษฎีความน่าจะเป็น (Probability Theory)</h2>
+        <div class="formula">P(E) = n(E) / n(S)</div>
+        <ul class="definition-list" id="definitionList">
+            <li id="def1"><strong>การทดลองสุ่ม (Random Experiment):</strong> การทดลองที่ไม่สามารถระบุผลลัพธ์ล่วงหน้าได้อย่างแน่นอน</li>
+            <li id="def2"><strong>แซมเปิลสเปซ (Sample Space - S):</strong> เซตของผลลัพธ์ทั้งหมดที่เป็นไปได้</li>
+            <li id="def3"><strong>เหตุการณ์ (Event - E):</strong> ผลลัพธ์ที่เราสนใจจากการทดลองสุ่ม</li>
+        </ul>
+    </div>
+
+    <div class="controls">
+        <label id="labelSimMode">โหมดการจำลอง:</label>
+        <div class="mode-toggle">
+            <button id="modeStepBtn" class="mode-btn active" onclick="setSimMode('step')">โหมดแข่งทอยสลับตา (3D Red Dots Effects)</button>
+            <button id="modeFastBtn" class="mode-btn" onclick="setSimMode('fast')">โหมดจำลองความเร็วสูง (Auto Fast)</button>
+        </div>
+
+        <div class="control-group">
+            <label id="labelExperiment">เลือกรูปแบบการทดลอง:</label>
+            <select id="experimentSelect" onchange="setupExperiment()">
+                <option value="coin" id="optCoin">โยนเหรียญ 3D</option>
+                <option value="die" id="optDie">ทอดลูกเต๋าสีขาวจุดสีแดง 3D</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label><span id="labelCoin">จำนวนลูกเต๋า/เหรียญ:</span> <span id="itemValue" class="value-display">3</span></label>
+            <input type="range" id="itemSlider" min="1" max="10" value="3" step="1" oninput="setupExperiment()">
+        </div>
+        <div class="control-group" id="trialControlGroup" style="display:none;">
+            <label><span id="labelTrial">จำนวนรอบการทดลองความเร็วสูง:</span> <span id="trialValue" class="value-display">100</span></label>
+            <input type="range" id="trialSlider" min="10" max="5000" value="100" step="10" oninput="runFastSimulation()">
+        </div>
+    </div>
+
+    <div id="canvas3d-container">
+        <div class="action-btns">
+            <button id="tossBtn" class="btn-action" onclick="animateToss()">🎲 ทอยเต๋าสีขาวจุดแดง! (Toss!)</button>
+            <button id="resetBtn" class="btn-action btn-reset" onclick="resetStats()">รีเซ็ตผลการทดลอง</button>
+        </div>
+    </div>
+
+    <div class="sample-space-box">
+        <strong id="labelSampleSpaceTitle">ปริภูมิตัวอย่าง (Sample Space):</strong><br>
+        S = { <span id="sampleSpaceSet">H, T</span> } | n(S) = <span id="sampleSpaceN">2</span> | <span id="lblTotalTosses">รวมทอยสะสม:</span> <span id="totalTossesDisplay">0</span> <span id="lblTimes">ครั้ง</span>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="probabilityChart"></canvas>
+    </div>
+
+    <div class="table-header">
+        <h3 id="tableTitle" style="margin:0;">ตารางเปรียบเทียบผลลัพธ์</h3>
+        <button class="btn-export" id="btnExport" onclick="exportCSV()">ส่งออกข้อมูล (Export CSV)</button>
+    </div>
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th id="thOutcome">ผลลัพธ์ที่สนใจ (E)</th>
+                    <th id="thFreq">ความถี่จากการทดลอง</th>
+                    <th id="thExpProb">ความน่าจะเป็นจากการทดลอง (%)</th>
+                    <th id="thTheoProb">ความน่าจะเป็นทางทฤษฎี (%)</th>
+                </tr>
+            </thead>
+            <tbody id="dataTableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="quiz-section">
+        <button class="btn-reset-questions" id="btnResetQ" onclick="resetDefaultQuestions()">คืนค่าโจทย์เริ่มต้น</button>
+        <h2 id="quizTitle" style="margin-top:0;">🏆 แบบทดสอบเก็บคะแนนเพิ่ม (+50 แต้ม)</h2>
+        <div id="scoreBoard" class="score-board"></div>
+        <div id="quizContainer"></div>
+        <button class="btn-submit-quiz" id="btnSubmitQuiz" onclick="checkQuizAnswers()">ส่งคำตอบและมอบคะแนนให้ผู้เล่นปัจจุบัน</button>
+    </div>
+
+    <div class="add-quiz-section">
+        <h3 id="addQuizTitle">เพิ่มโจทย์ข้อใหม่ (บันทึกลง LocalStorage)</h3>
+        <div style="margin-bottom:10px;">
+            <label id="lblAddQuestion">โจทย์คำถาม:</label>
+            <input type="text" id="newQuestion" placeholder="พิมพ์คำถามที่นี่...">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label id="lblAddOptions">ตัวเลือกคำตอบ (คั่นด้วยเครื่องหมายจุลภาค เช่น 1/2, 1/4, 1/6, 1/8):</label>
+            <input type="text" id="newOptions" placeholder="ตัวเลือก A, ตัวเลือก B, ตัวเลือก C, ตัวเลือก D">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label id="lblAddCorrect">ลำดับตัวเลือกที่ถูกต้อง (0 คือตัวเลือกแรก, 1 คือตัวเลือกที่สอง):</label>
+            <input type="number" id="correctIdx" min="0" max="3" value="0">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label id="lblAddAnswer">เฉลยพร้อมเหตุผล:</label>
+            <input type="text" id="newAnswer" placeholder="พิมพ์เหตุผลเฉลยที่นี่...">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label id="lblAddDifficulty">ระดับความยาก:</label>
+            <select id="newDifficulty">
+                <option value="easy" id="optEasy">ระดับง่าย</option>
+                <option value="medium" id="optMedium">ระดับปานกลาง</option>
+                <option value="hard" id="optHard">ระดับยาก</option>
+                <option value="expert" id="optExpert">ระดับท้าทาย</option>
+            </select>
+        </div>
+        <button class="btn-add" id="btnAddQuiz" onclick="addNewQuiz()">+ บันทึกโจทย์ใหม่</button>
+    </div>
+
+    <div class="summary-box">
+        <h2 id="summaryTitle">สรุปเนื้อหาสาระสำคัญ (Key Summary & Takeaways)</h2>
+        <ul class="summary-list">
+            <li id="sum1"><strong>ความน่าจะเป็น P(E) = n(E) / n(S):</strong> อัตราส่วนระหว่างจำนวนผลลัพธ์ที่สนใจ ต่อจำนวนผลลัพธ์ที่เป็นไปได้ทั้งหมด</li>
+            <li id="sum2"><strong>กฎของจำนวนมาก (Law of Large Numbers):</strong> ยิ่งทอยจำนวนครั้งมากขึ้น ผลลัพธ์จริงจะยิ่งลู่เข้าใกล้ค่าทฤษฎี</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    let currentLang = 'th';
+    let players = [];
+    let activePlayerIdx = 0;
+
+    const i18n = {
+        th: {
+            mainTitle: "🎲 Probability 3D White & Red Edition (2-4 คน)",
+            mainSubtitle: "เรียนรู้ความน่าจะเป็นผ่านการทอยลูกเต๋าสีขาวจุดสีแดงคลาสสิก",
+            lblPlayerCount: "👥 จำนวนผู้เล่นทั้งหมด:",
+            activeTurnPrefix: "👉 ตอนนี้เป็นตาของ:",
+            pts: "แต้ม",
+            predictTitle: "🎯 **คาดเดาผลลัพธ์ในตานี้:** เลือกทายผลก่อนกดทอย (+100 คะแนนเมื่อทายถูก!)",
+            theoryTitle: "ทฤษฎีความน่าจะเป็น (Probability Theory)",
+            def1: "<strong>การทดลองสุ่ม (Random Experiment):</strong> การทดลองที่ไม่สามารถระบุผลลัพธ์ล่วงหน้าได้อย่างแน่นอน",
+            def2: "<strong>แซมเปิลสเปซ (Sample Space - S):</strong> เซตของผลลัพธ์ทั้งหมดที่เป็นไปได้",
+            def3: "<strong>เหตุการณ์ (Event - E):</strong> ผลลัพธ์ที่เราสนใจจากการทดลองสุ่ม",
+            labelSimMode: "โหมดการจำลอง:",
+            modeStep: "โหมดแข่งทอยสลับตา (3D Red Dots Effects)",
+            modeFast: "โหมดจำลองความเร็วสูง (Auto Fast)",
+            labelExperiment: "เลือกรูปแบบการทดลอง:",
+            optCoin: "โยนเหรียญ 3D",
+            optDie: "ทอดลูกเต๋าสีขาวจุดสีแดง 3D",
+            labelCoin: "จำนวนลูกเต๋า/เหรียญ:",
+            labelTrial: "จำนวนรอบการทดลองความเร็วสูง:",
+            tossBtn: "🎲 ทอยเต๋าสีขาวจุดแดง! (Toss!)",
+            resetBtn: "รีเซ็ตผลการทดลอง",
+            sampleSpaceTitle: "ปริภูมิตัวอย่าง (Sample Space):",
+            totalTosses: "รวมทอยสะสม:",
+            times: "ครั้ง",
+            chartLabel: "ความถี่จากการทดลอง",
+            tableTitle: "ตารางเปรียบเทียบผลลัพธ์",
+            btnExport: "ส่งออกข้อมูล (Export CSV)",
+            thOutcome: "ผลลัพธ์ที่สนใจ (E)",
+            thFreq: "ความถี่จากการทดลอง",
+            thExpProb: "ความน่าจะเป็นจากการทดลอง (%)",
+            thTheoProb: "ความน่าจะเป็นทางทฤษฎี (%)",
+            quizTitle: "🏆 แบบทดสอบเก็บคะแนนเพิ่ม (+50 แต้ม)",
+            btnResetQ: "คืนค่าโจทย์เริ่มต้น",
+            btnSubmitQuiz: "ส่งคำตอบและมอบคะแนนให้ผู้เล่นปัจจุบัน",
+            addQuizTitle: "เพิ่มโจทย์ข้อใหม่ (บันทึกลง LocalStorage)",
+            lblAddQuestion: "โจทย์คำถาม:",
+            lblAddOptions: "ตัวเลือกคำตอบ (คั่นด้วยเครื่องหมายจุลภาค เช่น 1/2, 1/4, 1/6, 1/8):",
+            lblAddCorrect: "ลำดับตัวเลือกที่ถูกต้อง (0 คือตัวเลือกแรก, 1 คือตัวเลือกที่สอง):",
+            lblAddAnswer: "เฉลยพร้อมเหตุผล:",
+            lblAddDifficulty: "ระดับความยาก:",
+            optEasy: "ระดับง่าย", optMedium: "ระดับปานกลาง", optHard: "ระดับยาก", optExpert: "ระดับท้าทาย",
+            btnAddQuiz: "+ บันทึกโจทย์ใหม่",
+            summaryTitle: "สรุปเนื้อหาสาระสำคัญ (Key Summary & Takeaways)",
+            sum1: "<strong>ความน่าจะเป็น P(E) = n(E) / n(S):</strong> อัตราส่วนระหว่างจำนวนผลลัพธ์ที่สนใจ ต่อจำนวนผลลัพธ์ที่เป็นไปได้ทั้งหมด",
+            sum2: "<strong>กฎของจำนวนมาก (Law of Large Numbers):</strong> ยิ่งทอยจำนวนครั้งมากขึ้น ผลลัพธ์จริงจะยิ่งลู่เข้าใกล้ค่าทฤษฎี"
+        },
+        en: {
+            mainTitle: "🎲 Probability 3D White & Red Edition (2-4 Players)",
+            mainSubtitle: "Interactive 3D Probability Learning with Classic White & Red Dice",
+            lblPlayerCount: "👥 Total Players:",
+            activeTurnPrefix: "👉 Current Turn:",
+            pts: "pts",
+            predictTitle: "🎯 **Turn Prediction:** Guess the outcome before tossing (+100 pts on correct!)",
+            theoryTitle: "Probability Theory",
+            def1: "<strong>Random Experiment:</strong> An experiment whose outcome cannot be determined in advance.",
+            def2: "<strong>Sample Space (S):</strong> The set of all possible outcomes.",
+            def3: "<strong>Event (E):</strong> A specific subset of outcomes in a sample space.",
+            labelSimMode: "Simulation Mode:",
+            modeStep: "Pass & Play Mode (3D Red Dots)",
+            modeFast: "Auto High-Speed Simulation",
+            labelExperiment: "Select Experiment Type:",
+            optCoin: "3D Coin Flip",
+            optDie: "3D White & Red Dice Roll",
+            labelCoin: "Number of Dice/Coins:",
+            labelTrial: "High-Speed Trial Rounds:",
+            tossBtn: "🎲 Roll White & Red Dice! (Toss!)",
+            resetBtn: "Reset Experiment",
+            sampleSpaceTitle: "Sample Space:",
+            totalTosses: "Total Tosses:",
+            times: "times",
+            chartLabel: "Experimental Frequency",
+            tableTitle: "Outcome Comparison Table",
+            btnExport: "Export CSV Data",
+            thOutcome: "Interested Outcome (E)",
+            thFreq: "Observed Frequency",
+            thExpProb: "Experimental Prob (%)",
+            thTheoProb: "Theoretical Prob (%)",
+            quizTitle: "🏆 Knowledge Quiz (+50 pts per correct answer)",
+            btnResetQ: "Reset Default Questions",
+            btnSubmitQuiz: "Submit Answers & Award Current Player",
+            addQuizTitle: "Add New Question (Save to LocalStorage)",
+            lblAddQuestion: "Question Text:",
+            lblAddOptions: "Options (comma-separated, e.g., 1/2, 1/4, 1/6, 1/8):",
+            lblAddCorrect: "Correct Option Index (0 = 1st option, 1 = 2nd option):",
+            lblAddAnswer: "Explanation / Answer:",
+            lblAddDifficulty: "Difficulty Level:",
+            optEasy: "Easy", optMedium: "Medium", optHard: "Hard", optExpert: "Expert",
+            btnAddQuiz: "+ Save New Question",
+            summaryTitle: "Key Summary & Takeaways",
+            sum1: "<strong>Probability P(E) = n(E) / n(S):</strong> Ratio of favorable outcomes to all possible outcomes.",
+            sum2: "<strong>Law of Large Numbers:</strong> As the number of trials increases, experimental frequency approaches theoretical probability."
+        }
+    };
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        document.getElementById('btnTH').classList.toggle('active', lang === 'th');
+        document.getElementById('btnEN').classList.toggle('active', lang === 'en');
+
+        const t = i18n[lang];
+        document.getElementById('mainTitle').innerText = t.mainTitle;
+        document.getElementById('mainSubtitle').innerText = t.mainSubtitle;
+        document.getElementById('lblPlayerCount').innerText = t.lblPlayerCount;
+        document.getElementById('lblActiveTurnPrefix').innerText = t.activeTurnPrefix;
+        document.getElementById('lblPredictTitle').innerHTML = t.predictTitle;
+        document.getElementById('theoryTitle').innerText = t.theoryTitle;
+        document.getElementById('def1').innerHTML = t.def1;
+        document.getElementById('def2').innerHTML = t.def2;
+        document.getElementById('def3').innerHTML = t.def3;
+        document.getElementById('labelSimMode').innerText = t.labelSimMode;
+        document.getElementById('modeStepBtn').innerText = t.modeStep;
+        document.getElementById('modeFastBtn').innerText = t.modeFast;
+        document.getElementById('labelExperiment').innerText = t.labelExperiment;
+        document.getElementById('optCoin').innerText = t.optCoin;
+        document.getElementById('optDie').innerText = t.optDie;
+        document.getElementById('labelCoin').innerText = t.labelCoin;
+        document.getElementById('labelTrial').innerText = t.labelTrial;
+        document.getElementById('tossBtn').innerText = t.tossBtn;
+        document.getElementById('resetBtn').innerText = t.resetBtn;
+        document.getElementById('labelSampleSpaceTitle').innerText = t.sampleSpaceTitle;
+        document.getElementById('lblTotalTosses').innerText = t.totalTosses;
+        document.getElementById('lblTimes').innerText = t.times;
+        document.getElementById('tableTitle').innerText = t.tableTitle;
+        document.getElementById('btnExport').innerText = t.btnExport;
+        document.getElementById('thOutcome').innerText = t.thOutcome;
+        document.getElementById('thFreq').innerText = t.thFreq;
+        document.getElementById('thExpProb').innerText = t.thExpProb;
+        document.getElementById('thTheoProb').innerText = t.thTheoProb;
+        document.getElementById('quizTitle').innerText = t.quizTitle;
+        document.getElementById('btnResetQ').innerText = t.btnResetQ;
+        document.getElementById('btnSubmitQuiz').innerText = t.btnSubmitQuiz;
+        document.getElementById('addQuizTitle').innerText = t.addQuizTitle;
+        document.getElementById('lblAddQuestion').innerText = t.lblAddQuestion;
+        document.getElementById('lblAddOptions').innerText = t.lblAddOptions;
+        document.getElementById('lblAddCorrect').innerText = t.lblAddCorrect;
+        document.getElementById('lblAddAnswer').innerText = t.lblAddAnswer;
+        document.getElementById('lblAddDifficulty').innerText = t.lblAddDifficulty;
+        document.getElementById('optEasy').innerText = t.optEasy;
+        document.getElementById('optMedium').innerText = t.optMedium;
+        document.getElementById('optHard').innerText = t.optHard;
+        document.getElementById('optExpert').innerText = t.optExpert;
+        document.getElementById('btnAddQuiz').innerText = t.btnAddQuiz;
+        document.getElementById('summaryTitle').innerText = t.summaryTitle;
+        document.getElementById('sum1').innerHTML = t.sum1;
+        document.getElementById('sum2').innerHTML = t.sum2;
+
+        renderScoreboard();
+        updateUIFromAccumulated();
+        renderQuiz();
+    }
+
+    function initMultiplayer() {
+        const count = parseInt(document.getElementById('playerCountSelect').value);
+        players = [];
+        for (let i = 1; i <= count; i++) {
+            players.push({ id: i, name: `Player ${i}`, score: 0, streak: 0 });
+        }
+        activePlayerIdx = 0;
+        renderScoreboard();
+    }
+
+    function renderScoreboard() {
+        const grid = document.getElementById('scoreboardGrid');
+        grid.innerHTML = '';
+
+        let maxScore = -1;
+        players.forEach(p => { if (p.score > maxScore && p.score > 0) maxScore = p.score; });
+
+        players.forEach((p, idx) => {
+            const isActive = (idx === activePlayerIdx);
+            const isLeader = (p.score === maxScore && p.score > 0);
+
+            let rankTitle = 'Novice';
+            if (p.score >= 1000) rankTitle = 'God 👑';
+            else if (p.score >= 600) rankTitle = 'Master 🎰';
+            else if (p.score >= 300) rankTitle = 'Expert 📊';
+
+            grid.innerHTML += `
+                <div class="player-card ${isActive ? 'active-turn' : ''} ${isLeader ? 'leader' : ''}">
+                    <div style="font-weight:bold; font-size:1.1em; color:#2c3e50;">${p.name}</div>
+                    <div style="font-size:1.5em; font-weight:bold; color:#e74c3c; margin:5px 0;">${p.score} <span style="font-size:0.5em; color:#7f8c8d;">${i18n[currentLang].pts}</span></div>
+                    <div style="font-size:0.85em; color:#f39c12; font-weight:bold;">${rankTitle} | Streak: ${p.streak} 🔥</div>
+                </div>
+            `;
+        });
+
+        document.getElementById('activePlayerName').innerText = players[activePlayerIdx].name;
+    }
+
+    const defaultQuizData = [
+        { 
+            diff: 'easy', 
+            qTH: 'จากการทอดลูกเต๋า 1 ลูก 1 ครั้ง ความน่าจะเป็นที่จะได้ "แต้มคู่" คือเท่าใด?', 
+            qEN: 'When rolling a die once, what is the probability of getting an "even number"?',
+            options: ['1/6', '1/3', '1/2', '2/3'], 
+            correct: 2, 
+            aTH: 'แต้มคู่มี 3 กรณี (2, 4, 6) ดังนั้น P(E) = 3/6 = 1/2',
+            aEN: 'Even numbers have 3 cases (2, 4, 6) out of 6, so P(E) = 3/6 = 1/2'
+        },
+        { 
+            diff: 'medium', 
+            qTH: 'หากโยนเหรียญ 2 เหรียญพร้อมกัน 1 ครั้ง ความน่าจะเป็นที่จะ "ออกหน้าเหมือนกัน" คือเท่าใด?', 
+            qEN: 'When flipping 2 coins simultaneously, what is the probability of getting the "same side"?',
+            options: ['1/4', '1/2', '3/4', '1'], 
+            correct: 1, 
+            aTH: 'ออกหน้าเหมือนกันคือ HH และ TT (2 แบบ) จาก 4 แบบ = 1/2',
+            aEN: 'Same sides are HH and TT (2 outcomes) out of 4 = 1/2'
+        },
+        { 
+            diff: 'hard', 
+            qTH: 'ในการทอดลูกเต๋า 2 ลูกพร้อมกัน ความน่าจะเป็นที่ "ผลรวมของแต้มมากกว่า 10" คือเท่าใด?', 
+            qEN: 'When rolling 2 dice, what is the probability that the "sum is greater than 10"?',
+            options: ['1/36', '1/18', '1/12', '1/6'], 
+            correct: 2, 
+            aTH: 'ผลรวมมากกว่า 10 ได้แก่ (5,6), (6,5), (6,6) รวม 3 กรณี = 3/36 = 1/12',
+            aEN: 'Sums greater than 10 are (5,6), (6,5), (6,6) = 3 outcomes out of 36 = 1/12'
+        },
+        { 
+            diff: 'expert', 
+            qTH: 'หากโยนเหรียญ 10 ครั้งแล้วออกก้อย 8 ครั้ง สรุปว่าเหรียญนี้มีโอกาสออกก้อย 80% ถูกต้องหรือไม่?', 
+            qEN: 'If a coin lands Tails 8 out of 10 times, is it correct to conclude it has an 80% Tails probability?',
+            options: ['ถูกต้อง/Correct', 'ไม่ถูกต้อง เพราะจำนวนครั้งน้อยเกินไป/Incorrect (trials too low)', 'ถูกต้องตามทฤษฎี/Theoretical true', 'สรุปไม่ได้/Inconclusive'], 
+            correct: 1, 
+            aTH: 'ตามกฎ Law of Large Numbers ต้องทดลองจำนวนครั้งมากพอ',
+            aEN: 'According to the Law of Large Numbers, the sample size must be large enough.'
+        }
+    ];
+
+    let quizData = [];
+    let currentSimMode = 'step'; 
+    let accumulatedCounts = {};
+    let totalTosses = 0;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type, isWin = false) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        if (isWin) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            return;
+        }
+
+        if (type === 'coin') {
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1400 - (i * 200), audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.12);
+                    gain.gain.setValueAtTime(0.3 / (i + 1), audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+                }, i * 150);
+            }
+        } else {
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300 + Math.random() * 200, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.08);
+                }, i * 90);
+            }
+
+            setTimeout(() => {
+                for (let j = 0; j < 3; j++) {
+                    setTimeout(() => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.connect(gain); gain.connect(audioCtx.destination);
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(180 - (j * 30), audioCtx.currentTime);
+                        gain.gain.setValueAtTime(0.6 / (j + 1), audioCtx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+                    }, j * 70);
+                }
+            }, 550);
+        }
+    }
+
+    let scene, camera, renderer, objects = [], isTossing = false;
+    let particleSystem;
+    const container = document.getElementById('canvas3d-container');
+
+    function init3D() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(5, 12, 8);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        const planeGeo = new THREE.PlaneGeometry(30, 30);
+        const planeMat = new THREE.MeshStandardMaterial({ color: 0x111e25, transparent: true, opacity: 0.4 });
+        const plane = new THREE.Mesh(planeGeo, planeMat);
+        plane.rotation.x = -Math.PI / 2;
+        plane.receiveShadow = true;
+        scene.add(plane);
+
+        const particleCount = 100;
+        const particles = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        for(let i=0; i<particleCount*3; i++) {
+            positions[i] = (Math.random() - 0.5) * 10;
+        }
+        particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const pMaterial = new THREE.PointsMaterial({
+            color: 0xe74c3c, size: 0.2, transparent: true, opacity: 0.8
+        });
+        particleSystem = new THREE.Points(particles, pMaterial);
+        particleSystem.visible = false;
+        scene.add(particleSystem);
+
+        animate();
+    }
+
+    function createWhiteRedDiceTexture(number) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512; canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 512, 512);
+        ctx.strokeStyle = '#dcdde1'; ctx.lineWidth = 20; ctx.strokeRect(10, 10, 492, 492);
+
+        function drawRedDot(x, y) {
+            const r = 42;
+            const dotGrad = ctx.createRadialGradient(x - 5, y - 5, r * 0.2, x, y, r);
+            dotGrad.addColorStop(0, '#e74c3c');
+            dotGrad.addColorStop(0.8, '#c0392b');
+            dotGrad.addColorStop(1, '#821e14');
+            
+            ctx.fillStyle = dotGrad;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+        }
+
+        const center = 256, left = 135, right = 377, top = 135, bottom = 377;
+        if (number === 1) drawRedDot(center, center);
+        else if (number === 2) { drawRedDot(left, top); drawRedDot(right, bottom); }
+        else if (number === 3) { drawRedDot(left, top); drawRedDot(center, center); drawRedDot(right, bottom); }
+        else if (number === 4) { drawRedDot(left, top); drawRedDot(right, top); drawRedDot(left, bottom); drawRedDot(right, bottom); }
+        else if (number === 5) { drawRedDot(left, top); drawRedDot(right, top); drawRedDot(center, center); drawRedDot(left, bottom); drawRedDot(right, bottom); }
+        else if (number === 6) { drawRedDot(left, top); drawRedDot(right, top); drawRedDot(left, center); drawRedDot(right, center); drawRedDot(left, bottom); drawRedDot(right, bottom); }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    function createCoinFaceTexture(text, bgColor, textColor) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256; canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = bgColor; ctx.fillRect(0, 0, 256, 256);
+        ctx.strokeStyle = textColor; ctx.lineWidth = 16; ctx.beginPath(); ctx.arc(128, 128, 115, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = textColor; ctx.font = 'bold 90px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(text, 128, 134);
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    const whiteRedDiceMaterials = [
+        new THREE.MeshStandardMaterial({ map: createWhiteRedDiceTexture(1), roughness: 0.3, metalness: 0.1 }),
+        new THREE.MeshStandardMaterial({ map: createWhiteRedDiceTexture(2), roughness: 0.3, metalness: 0.1 }),
+        new THREE.MeshStandardMaterial({ map: createWhiteRedDiceTexture(3), roughness: 0.3, metalness: 0.1 }),
+        new THREE.MeshStandardMaterial({ map: createWhiteRedDiceTexture(4), roughness: 0.3, metalness: 0.1 }),
+        new THREE.MeshStandardMaterial({ map: createWhiteRedDiceTexture(5), roughness: 0.3, metalness: 0.1 }),
+        new THREE.MeshStandardMaterial({ map: createWhiteRedDiceTexture(6), roughness: 0.3, metalness: 0.1 })
+    ];
+
+    function createObjects(type, count) {
+        objects.forEach(obj => scene.remove(obj.mesh));
+        objects = [];
+
+        const cols = Math.min(count, 5);
+        const rows = Math.ceil(count / cols);
+
+        camera.position.set(0, 6 + rows * 1.8, 7 + rows * 2);
+        camera.lookAt(0, 0, 0);
+
+        for (let i = 0; i < count; i++) {
+            let mesh;
+            const r = Math.floor(i / cols);
+            const c = i % cols;
+            const posX = (c - (cols - 1) / 2) * 2.3;
+            const posZ = (r - (rows - 1) / 2) * 2.3;
+
+            if (type === 'coin') {
+                const geo = new THREE.CylinderGeometry(1.0, 1.0, 0.18, 32);
+                const matEdge = new THREE.MeshStandardMaterial({ color: 0xbdc3c7, metalness: 0.8, roughness: 0.2 });
+                const matHead = new THREE.MeshStandardMaterial({ map: createCoinFaceTexture(currentLang === 'th' ? 'หัว' : 'H', '#f1c40f', '#d35400') });
+                const matTail = new THREE.MeshStandardMaterial({ map: createCoinFaceTexture(currentLang === 'th' ? 'ก้อย' : 'T', '#ecf0f1', '#2c3e50') });
+                mesh = new THREE.Mesh(geo, [matEdge, matHead, matTail]);
+                mesh.userData = { type: 'coin' };
+            } else {
+                const geo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+                mesh = new THREE.Mesh(geo, whiteRedDiceMaterials);
+                mesh.userData = { type: 'die' };
+            }
+
+            mesh.position.set(posX, (type === 'coin') ? 0.09 : 0.7, posZ);
+            mesh.castShadow = true;
+            scene.add(mesh);
+
+            objects.push({
+                mesh: mesh,
+                initPos: mesh.position.clone(),
+                velocity: new THREE.Vector3(),
+                angularVelocity: new THREE.Vector3(),
+                targetRotation: new THREE.Euler()
+            });
+        }
+        updatePredictionOptions();
+    }
+
+    function updatePredictionOptions() {
+        const type = document.getElementById('experimentSelect').value;
+        const count = parseInt(document.getElementById('itemSlider').value);
+        const select = document.getElementById('predictSelect');
+        select.innerHTML = '';
+
+        if (type === 'coin') {
+            for (let i = 0; i <= count; i++) {
+                let lbl = currentLang === 'th' ? `ออกก้อย ${i} เหรียญ` : `Tails: ${i} coin(s)`;
+                select.innerHTML += `<option value="${i}">${lbl}</option>`;
+            }
+        } else {
+            const minSum = count;
+            const maxSum = count * 6;
+            for (let i = minSum; i <= maxSum; i++) {
+                let lbl = currentLang === 'th' ? `ผลรวมแต้มเท่ากับ ${i}` : `Sum equals ${i}`;
+                select.innerHTML += `<option value="${i}">${lbl}</option>`;
+            }
+        }
+    }
+
+    function animateToss() {
+        if (isTossing) return;
+        isTossing = true;
+        document.getElementById('tossBtn').disabled = true;
+
+        playSound(objects[0].mesh.userData.type);
+
+        particleSystem.visible = true;
+
+        const type = document.getElementById('experimentSelect').value;
+        let stepResultKey = 0;
+
+        if (type === 'coin') {
+            let tailsCount = 0;
+            objects.forEach(obj => {
+                let isTails = Math.random() < 0.5;
+                if (isTails) tailsCount++;
+                obj.targetRotation.set(isTails ? Math.PI : 0, 0, 0);
+            });
+            stepResultKey = tailsCount;
+        } else {
+            let sumVal = 0;
+            objects.forEach(obj => {
+                let faceResult = Math.floor(Math.random() * 6) + 1;
+                sumVal += faceResult;
+                let rx = 0, rz = 0;
+                if (faceResult === 1) rz = -Math.PI / 2;
+                else if (faceResult === 2) rz = Math.PI / 2;
+                else if (faceResult === 3) rx = 0;
+                else if (faceResult === 4) rx = Math.PI;
+                else if (faceResult === 5) rx = -Math.PI / 2;
+                else if (faceResult === 6) rx = Math.PI / 2;
+                obj.targetRotation.set(rx, 0, rz);
+            });
+            stepResultKey = sumVal;
+        }
+
+        objects.forEach(obj => {
+            obj.mesh.position.y = 1.2;
+            obj.velocity.set((Math.random() - 0.5) * 1.5, 7 + Math.random() * 2, (Math.random() - 0.5) * 1.5);
+            obj.angularVelocity.set(Math.random() * 20 + 10, Math.random() * 10, Math.random() * 20 + 10);
+        });
+
+        setTimeout(() => {
+            isTossing = false;
+            particleSystem.visible = false;
+            document.getElementById('tossBtn').disabled = false;
+            objects.forEach(obj => {
+                obj.mesh.position.x = obj.initPos.x;
+                obj.mesh.position.z = obj.initPos.z;
+                obj.mesh.position.y = (obj.mesh.userData.type === 'coin') ? 0.09 : 0.7;
+                obj.mesh.rotation.copy(obj.targetRotation);
+            });
+            
+            totalTosses++;
+            if (!accumulatedCounts[stepResultKey]) accumulatedCounts[stepResultKey] = 0;
+            accumulatedCounts[stepResultKey]++;
+
+            const currentPlayer = players[activePlayerIdx];
+            const userPredict = parseInt(document.getElementById('predictSelect').value);
+
+            if (userPredict === stepResultKey) {
+                currentPlayer.streak++;
+                const bonus = currentPlayer.streak * 20;
+                currentPlayer.score += (100 + bonus);
+                playSound(null, true);
+                let msg = currentLang === 'th' ? `🎉 ยินดีด้วย ${currentPlayer.name}! ทายผลถูกต้อง! ได้รับ +${100 + bonus} แต้ม!` : `🎉 Congrats ${currentPlayer.name}! Correct guess! +${100 + bonus} pts!`;
+                alert(msg);
+            } else {
+                currentPlayer.streak = 0;
+            }
+
+            activePlayerIdx = (activePlayerIdx + 1) % players.length;
+
+            renderScoreboard();
+            updateUIFromAccumulated();
+        }, 1800);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (isTossing) {
+            objects.forEach(obj => {
+                obj.mesh.position.addScaledVector(obj.velocity, 0.02);
+                obj.velocity.y -= 0.35;
+                const minY = (obj.mesh.userData.type === 'coin') ? 0.09 : 0.7;
+                if (obj.mesh.position.y <= minY) {
+                    obj.mesh.position.y = minY;
+                    obj.velocity.y *= -0.45;
+                    obj.angularVelocity.multiplyScalar(0.7);
+                }
+                obj.mesh.rotation.x += obj.angularVelocity.x * 0.02;
+                obj.mesh.rotation.y += obj.angularVelocity.y * 0.02;
+                obj.mesh.rotation.z += obj.angularVelocity.z * 0.02;
+            });
+
+            if (particleSystem) {
+                particleSystem.rotation.y += 0.05;
+            }
+        }
+        renderer.render(scene, camera);
+    }
+
+    function setSimMode(mode) {
+        currentSimMode = mode;
+        document.getElementById('modeStepBtn').classList.toggle('active', mode === 'step');
+        document.getElementById('modeFastBtn').classList.toggle('active', mode === 'fast');
+        document.getElementById('trialControlGroup').style.display = (mode === 'fast') ? 'block' : 'none';
+        document.getElementById('tossBtn').style.display = (mode === 'step') ? 'block' : 'none';
+        resetStats();
+        if (mode === 'fast') runFastSimulation();
+    }
+
+    function resetStats() {
+        accumulatedCounts = {};
+        totalTosses = 0;
+        document.getElementById('totalTossesDisplay').innerText = '0';
+        updateUIFromAccumulated();
+    }
+
+    function runFastSimulation() {
+        const type = document.getElementById('experimentSelect').value;
+        const count = parseInt(document.getElementById('itemSlider').value);
+        const trials = parseInt(document.getElementById('trialSlider').value);
+        document.getElementById('trialValue').innerText = trials;
+
+        accumulatedCounts = {};
+        totalTosses = trials;
+
+        if (type === 'coin') {
+            for (let i = 0; i < trials; i++) {
+                let tails = 0;
+                for (let c = 0; c < count; c++) if (Math.random() < 0.5) tails++;
+                accumulatedCounts[tails] = (accumulatedCounts[tails] || 0) + 1;
+            }
+        } else {
+            for (let i = 0; i < trials; i++) {
+                let sum = 0;
+                for (let d = 0; d < count; d++) sum += Math.floor(Math.random() * 6) + 1;
+                accumulatedCounts[sum] = (accumulatedCounts[sum] || 0) + 1;
+            }
+        }
+        updateUIFromAccumulated();
+    }
+
+    function updateUIFromAccumulated() {
+        const type = document.getElementById('experimentSelect').value;
+        const count = parseInt(document.getElementById('itemSlider').value);
+        const tbody = document.getElementById('dataTableBody');
+        tbody.innerHTML = '';
+
+        document.getElementById('totalTossesDisplay').innerText = totalTosses;
+
+        let labels = [], dataArr = [];
+
+        if (type === 'coin') {
+            const nS = Math.pow(2, count);
+            document.getElementById('sampleSpaceSet').innerText = (count === 1) ? (currentLang === 'th' ? 'H, T' : 'H, T') : (currentLang === 'th' ? `รูปแบบทั้งหมด ${nS} แบบ` : `Total ${nS} outcomes`);
+            document.getElementById('sampleSpaceN').innerText = nS;
+
+            for (let i = 0; i <= count; i++) {
+                let labelText = currentLang === 'th' ? `ก้อย ${i} เหรียญ` : `Tails: ${i}`;
+                labels.push(labelText);
+                let freq = accumulatedCounts[i] || 0;
+                dataArr.push(freq);
+                let expP = totalTosses > 0 ? ((freq / totalTosses) * 100).toFixed(2) : '0.00';
+                let theoP = ((combine(count, i) / nS) * 100).toFixed(2);
+                tbody.innerHTML += `<tr><td>${labels[i]}</td><td>${freq}</td><td>${expP}%</td><td>${theoP}%</td></tr>`;
+            }
+        } else {
+            if (count === 1) {
+                document.getElementById('sampleSpaceSet').innerText = '1, 2, 3, 4, 5, 6';
+                document.getElementById('sampleSpaceN').innerText = 6;
+                for (let i = 1; i <= 6; i++) {
+                    let labelText = currentLang === 'th' ? `แต้ม ${i}` : `Die Value ${i}`;
+                    labels.push(labelText);
+                    let freq = accumulatedCounts[i] || 0;
+                    dataArr.push(freq);
+                    let expP = totalTosses > 0 ? ((freq / totalTosses) * 100).toFixed(2) : '0.00';
+                    tbody.innerHTML += `<tr><td>${labels[i - 1]}</td><td>${freq}</td><td>${expP}%</td><td>16.67%</td></tr>`;
+                }
+            } else {
+                const minSum = count;
+                const maxSum = count * 6;
+                const nS = Math.pow(6, count);
+                document.getElementById('sampleSpaceSet').innerText = currentLang === 'th' ? `ผลรวม ${minSum} ถึง ${maxSum} (${nS} แบบ)` : `Sum ${minSum} to ${maxSum} (${nS} outcomes)`;
+                document.getElementById('sampleSpaceN').innerText = nS;
+
+                for (let i = minSum; i <= maxSum; i++) {
+                    let labelText = currentLang === 'th' ? `ผลรวม ${i}` : `Sum ${i}`;
+                    labels.push(labelText);
+                    let freq = accumulatedCounts[i] || 0;
+                    dataArr.push(freq);
+                    let expP = totalTosses > 0 ? ((freq / totalTosses) * 100).toFixed(2) : '0.00';
+                    tbody.innerHTML += `<tr><td>${labels[labels.length - 1]}</td><td>${freq}</td><td>${expP}%</td><td>-</td></tr>`;
+                }
+            }
+        }
+
+        probChart.data.labels = labels;
+        probChart.data.datasets[0].label = i18n[currentLang].chartLabel;
+        probChart.data.datasets[0].data = dataArr;
+        probChart.update();
+    }
+
+    function exportCSV() {
+        const table = document.querySelector("table");
+        let csv = [];
+        for (let row of table.rows) {
+            let cols = Array.from(row.cells).map(td => `"${td.innerText.replace(/"/g, '""')}"`);
+            csv.push(cols.join(","));
+        }
+        let csvFile = new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv;charset=utf-8;" });
+        let downloadLink = document.createElement("a");
+        downloadLink.download = `probability_experiment_data.csv`;
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+
+    function loadQuizData() {
+        const saved = localStorage.getItem('probability_quiz_data');
+        if (saved) {
+            try { quizData = JSON.parse(saved); } 
+            catch(e) { quizData = [...defaultQuizData]; }
+        } else {
+            quizData = [...defaultQuizData];
+        }
+        renderQuiz();
+    }
+
+    function saveQuizData() {
+        localStorage.setItem('probability_quiz_data', JSON.stringify(quizData));
+    }
+
+    function resetDefaultQuestions() {
+        let msg = currentLang === 'th' ? "ต้องการคืนค่าข้อสอบเริ่มต้นทั้งหมดใช่หรือไม่?" : "Reset all questions to default?";
+        if (confirm(msg)) {
+            quizData = [...defaultQuizData];
+            saveQuizData();
+            renderQuiz();
+            document.getElementById('scoreBoard').style.display = 'none';
+        }
+    }
+
+    function renderQuiz() {
+        const container = document.getElementById('quizContainer');
+        container.innerHTML = "";
+        quizData.forEach((q, idx) => {
+            let qText = currentLang === 'th' ? (q.qTH || q.qEN) : (q.qEN || q.qTH);
+            let optsHTML = "";
+            let options = q.options || ['Option A', 'Option B', 'Option C', 'Option D'];
+            options.forEach((opt, optIdx) => {
+                optsHTML += `
+                <label class="option-item">
+                    <input type="radio" name="q_${idx}" value="${optIdx}">
+                    <span>${opt}</span>
+                </label>`;
+            });
+
+            container.innerHTML += `
+            <div class="question-card" id="qcard_${idx}">
+                <p style="margin-top:0;">
+                    <span class="badge badge-${q.diff}">${q.diff.toUpperCase()}</span> 
+                    <strong>${currentLang === 'th' ? 'ข้อที่' : 'Q'}${idx + 1}:</strong> ${qText}
+                </p>
+                <div class="options-group">${optsHTML}</div>
+                <div class="feedback" id="feedback_${idx}"></div>
+            </div>`;
+        });
+    }
+
+    function checkQuizAnswers() {
+        let quizScore = 0;
+        let total = quizData.length;
+
+        quizData.forEach((q, idx) => {
+            const selected = document.querySelector(`input[name="q_${idx}"]:checked`);
+            const feedbackEl = document.getElementById(`feedback_${idx}`);
+            feedbackEl.style.display = 'block';
+
+            let ansExp = currentLang === 'th' ? (q.aTH || q.aEN) : (q.aEN || q.aTH);
+
+            if (selected && parseInt(selected.value) === (q.correct || 0)) {
+                quizScore++;
+                players[activePlayerIdx].score += 50;
+                feedbackEl.className = 'feedback correct';
+                feedbackEl.innerHTML = currentLang === 'th' ? `ถูกต้อง (+50 แต้มให้ ${players[activePlayerIdx].name}) : ${ansExp}` : `Correct (+50 pts to ${players[activePlayerIdx].name}): ${ansExp}`;
+            } else {
+                feedbackEl.className = 'feedback incorrect';
+                feedbackEl.innerHTML = currentLang === 'th' ? `ยังไม่ถูกต้อง : ${ansExp}` : `Incorrect: ${ansExp}`;
+            }
+        });
+
+        renderScoreboard();
+
+        const scoreBoard = document.getElementById('scoreBoard');
+        scoreBoard.style.display = 'block';
+        let percentage = ((quizScore / total) * 100).toFixed(0);
+        scoreBoard.innerHTML = currentLang === 'th' ? `ตรวจข้อสอบสำเร็จ! ตอบถูก ${quizScore} / ${total} ข้อ - มอบคะแนนรวม +${quizScore * 50} แต้มให้ ${players[activePlayerIdx].name}!` : `Quiz completed! ${quizScore} / ${total} correct - Awarded +${quizScore * 50} pts to ${players[activePlayerIdx].name}!`;
+    }
+
+    function addNewQuiz() {
+        const q = document.getElementById('newQuestion').value.trim();
+        const optsStr = document.getElementById('newOptions').value.trim();
+        const correctIdx = parseInt(document.getElementById('correctIdx').value);
+        const a = document.getElementById('newAnswer').value.trim();
+        const d = document.getElementById('newDifficulty').value;
+
+        if (!q || !a || !optsStr) return alert(currentLang === 'th' ? 'กรอกโจทย์ ตัวเลือก และเฉลยให้ครบถ้วน' : 'Please fill out question, options, and explanation.');
+
+        const optsArr = optsStr.split(',').map(s => s.trim()).filter(s => s !== '');
+        if (optsArr.length < 2) return alert(currentLang === 'th' ? 'กรุณาใส่ตัวเลือกอย่างน้อย 2 ตัวเลือก' : 'Please enter at least 2 options.');
+
+        quizData.push({
+            diff: d,
+            qTH: q, qEN: q,
+            options: optsArr,
+            correct: (correctIdx >= 0 && correctIdx < optsArr.length) ? correctIdx : 0,
+            aTH: a, aEN: a
+        });
+
+        saveQuizData();
+        renderQuiz();
+
+        document.getElementById('newQuestion').value = '';
+        document.getElementById('newOptions').value = '';
+        document.getElementById('newAnswer').value = '';
+        alert(currentLang === 'th' ? 'บันทึกข้อสอบใหม่เรียบร้อยแล้ว' : 'New question saved successfully!');
+    }
+
+    let probChart;
+    function initChart() {
+        const ctx = document.getElementById('probabilityChart').getContext('2d');
+        probChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: i18n[currentLang].chartLabel, data: [], backgroundColor: '#3498db' }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    function setupExperiment() {
+        const type = document.getElementById('experimentSelect').value;
+        const count = parseInt(document.getElementById('itemSlider').value);
+        document.getElementById('itemValue').innerText = count;
+
+        createObjects(type, count);
+        resetStats();
+        if (currentSimMode === 'fast') runFastSimulation();
+    }
+
+    function factorial(n) { if (n <= 1) return 1; let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+    function combine(n, r) { return factorial(n) / (factorial(r) * factorial(n - r)); }
+
+    window.onload = () => {
+        init3D();
+        initChart();
+        loadQuizData();
+        initMultiplayer();
+        setupExperiment();
+    };
+    window.onresize = () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    };
+</script>
+
+</body>
+</html>
